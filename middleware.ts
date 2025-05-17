@@ -7,6 +7,7 @@ export async function middleware(request: NextRequest) {
 
   // Skip processing for static files
   if (path.includes('manifest.json') || 
+      path.includes('api/manifest') ||
       path.endsWith('.ico') || 
       path.endsWith('.png') || 
       path.endsWith('.jpg') || 
@@ -115,8 +116,9 @@ function addCorsHeaders(response: NextResponse) {
 export const config = {
   matcher: [
     '/admin/:path*',
-    '/api/:path*',
+    '/api/:path*', 
     '/god',
-    '/((?!_next/static|_next/image|favicon.ico|manifest.json|icons).*)',
+    // Exclude static files and manifest from middleware
+    '/((?!_next/static|_next/image|_next/data|favicon.ico|manifest.json|icons/).*)',
   ]
 }; 

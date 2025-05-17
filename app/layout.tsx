@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     maximumScale: 5,
   },
   // Add manifest for PWA
-  manifest: '/manifest.json',
+  manifest: '/api/manifest',
   // Add verification for search engines
   verification: {
     google: 'google-site-verification',
@@ -80,7 +80,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="manifest" href="/manifest.json" type="application/manifest+json" />
+        <link rel="manifest" href="/api/manifest" type="application/manifest+json" />
         <meta name="theme-color" content="#1e40af" />
         <link rel="icon" href="/favicon.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
