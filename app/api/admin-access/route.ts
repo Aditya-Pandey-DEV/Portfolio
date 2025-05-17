@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-// Dynamic import for jsonwebtoken to improve Edge compatibility
-async function signJWT(payload: any, secret: string, options: any): Promise<string> {
-  try {
-    const { sign } = await import('jsonwebtoken');
-    return sign(payload, secret, options);
-  } catch (error) {
-    console.error('Failed to import or use jsonwebtoken:', error);
-    throw new Error('JWT signing failed');
+// Use a simpler token generation method to avoid Edge Runtime issues
+function generateToken(length = 40): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let token = '';
+  for (let i = 0; i < length; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
   }
+  return token;
 }
 
 // This is an emergency admin access endpoint for troubleshooting
@@ -24,17 +23,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Generate a special admin token (will be used by middleware to bypass auth)
-    const adminToken = await signJWT(
-      { 
-        id: 'admin-bypass',
-        name: 'Admin Bypass',
-        email: 'admin@example.com',
-        role: 'admin',
-        bypassAuth: true
-      },
-      process.env.NEXTAUTH_SECRET || 'emergency-secret',
-      { expiresIn: '7d' }
-    );
+    const adminToken = generateToken(60);
     
     // Create response
     const response = NextResponse.json({
