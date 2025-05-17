@@ -8,6 +8,7 @@ import { Toaster } from "./components/ui/toaster";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Suspense } from "react";
+import { getSEOData } from "./lib/seo";
 
 // Optimize font loading with display swap
 const inter = Inter({ 
@@ -19,58 +20,10 @@ const inter = Inter({
   fallback: ['system-ui', 'sans-serif'],
 });
 
-// Define metadata for better SEO
-export const metadata: Metadata = {
-  title: {
-    default: "John Doe | Full Stack Developer",
-    template: "%s | John Doe Portfolio",
-  },
-  description: "BTech CSE student and Full Stack Developer with expertise in modern web technologies.",
-  keywords: ["portfolio", "developer", "full stack", "btech", "cse", "computer science", "react", "next.js"],
-  authors: [{ name: "John Doe" }],
-  creator: "John Doe",
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: "https://portfolio-example.com",
-    title: "John Doe | Full Stack Developer",
-    description: "BTech CSE student and Full Stack Developer with expertise in modern web technologies.",
-    images: [
-      {
-        url: "/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "John Doe Portfolio",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "John Doe | Full Stack Developer",
-    description: "BTech CSE student and Full Stack Developer with expertise in modern web technologies.",
-    images: ["/og-image.jpg"],
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-  // Add viewport optimization
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-  },
-  // Add manifest for PWA
-  manifest: '/api/manifest',
-  // Add verification for search engines
-  verification: {
-    google: 'google-site-verification',
-  },
-  // Add canonical URL
-  alternates: {
-    canonical: 'https://your-portfolio-url.com',
-  },
-};
+// Generate metadata dynamically
+export async function generateMetadata(): Promise<Metadata> {
+  return await getSEOData();
+}
 
 export default function RootLayout({
   children,
@@ -85,7 +38,6 @@ export default function RootLayout({
         <link rel="manifest" href="/api/manifest" />
         <meta name="theme-color" content="#000000" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="description" content="Aditya Pandey's Portfolio - Full Stack Developer" />
       </head>
       <body className={`${inter.className} antialiased`}>
         <NextAuthProvider>

@@ -5,6 +5,29 @@ import { PrismaClient } from '@/app/generated/prisma';
 
 const prisma = new PrismaClient();
 
+// Validate SEO data
+function validateSEOData(data: any) {
+  const errors: string[] = [];
+  
+  if (!data.title || data.title.length > 60) {
+    errors.push('Title is required and must be 60 characters or less');
+  }
+  
+  if (!data.description || data.description.length > 160) {
+    errors.push('Description is required and must be 160 characters or less');
+  }
+  
+  if (!data.keywords) {
+    errors.push('Keywords are required');
+  }
+  
+  if (data.canonicalUrl && !data.canonicalUrl.startsWith('http')) {
+    errors.push('Canonical URL must be a valid URL starting with http');
+  }
+  
+  return errors;
+}
+
 // GET: Fetch SEO settings
 export async function GET() {
   try {
@@ -63,6 +86,15 @@ export async function POST(request: Request) {
     
     const seoData = await request.json();
     
+    // Validate SEO data
+    const validationErrors = validateSEOData(seoData);
+    if (validationErrors.length > 0) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: validationErrors },
+        { status: 400 }
+      );
+    }
+    
     // Get the first resume (assuming there's only one in this simple portfolio)
     const resume = await prisma.resume.findFirst();
     
@@ -78,26 +110,27 @@ export async function POST(request: Request) {
       where: { resumeId: resume.id }
     });
     
+    let result;
     if (existingSeo) {
       // Update existing SEO data
-      await prisma.sEO.update({
+      result = await prisma.sEO.update({
         where: { id: existingSeo.id },
         data: {
           title: seoData.title,
           description: seoData.description,
           keywords: seoData.keywords,
-          ogTitle: seoData.ogTitle,
-          ogDescription: seoData.ogDescription,
-          ogImage: seoData.ogImage,
-          twitterTitle: seoData.twitterTitle,
-          twitterDescription: seoData.twitterDescription,
-          twitterImage: seoData.twitterImage,
-          canonicalUrl: seoData.canonicalUrl,
+          ogTitle: seoData.ogTitle || null,
+          ogDescription: seoData.ogDescription || null,
+          ogImage: seoData.ogImage || null,
+          twitterTitle: seoData.twitterTitle || null,
+          twitterDescription: seoData.twitterDescription || null,
+          twitterImage: seoData.twitterImage || null,
+          canonicalUrl: seoData.canonicalUrl || null,
         }
       });
     } else {
       // Create new SEO data
-      await prisma.sEO.create({
+      result = await prisma.sEO.create({
         data: {
           title: seoData.title,
           description: seoData.description,
@@ -114,7 +147,14 @@ export async function POST(request: Request) {
       });
     }
     
-    return NextResponse.json({ success: true });
+    // Revalidate the page to update metadata
+    try {
+      await fetch('/api/revalidate?path=/');
+    } catch (error) {
+      console.error('Revalidation error:', error);
+    }
+    
+    return NextResponse.json({ success: true, data: result });
   } catch (error) {
     console.error('POST SEO error:', error);
     return NextResponse.json(

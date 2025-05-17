@@ -9,6 +9,7 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { ImageUpload } from '@/app/components/ui/image-upload';
 import Link from 'next/link';
 import { FaArrowLeft, FaQuestionCircle } from 'react-icons/fa';
+import { toast } from '@/components/ui/use-toast';
 
 interface SEOData {
   title: string;
@@ -102,15 +103,34 @@ export default function SEOPage() {
         body: JSON.stringify(seoData),
       });
       
+      const data = await response.json();
+      
       if (response.ok) {
-        alert('SEO settings saved successfully!');
+        toast({
+          title: "Success",
+          description: "SEO settings saved successfully!",
+        });
+        
+        // Refresh the page to show updated metadata
+        window.location.reload();
       } else {
-        const error = await response.json();
-        alert(`Error: ${error.message || 'Failed to save'}`);
+        toast({
+          title: "Error",
+          description: data.error || 'Failed to save SEO settings',
+          variant: "destructive",
+        });
+        
+        if (data.details) {
+          console.error('Validation errors:', data.details);
+        }
       }
     } catch (error) {
       console.error('Submit error:', error);
-      alert('An unexpected error occurred');
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
