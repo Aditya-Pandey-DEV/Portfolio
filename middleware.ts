@@ -101,7 +101,19 @@ export async function middleware(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('Auth middleware error:', error);
-    // On error, redirect to admin-direct page for special access
+    // On error, allow access if we have any form of authentication
+    const hasAnyAuth = request.cookies.has('next-auth.session-token') || 
+                      request.cookies.has('god_access') || 
+                      request.cookies.has('admin_token');
+    
+    if (hasAnyAuth) {
+      console.log('Auth error but has existing auth, allowing access');
+      const response = NextResponse.next();
+      addCorsHeaders(response);
+      return response;
+    }
+    
+    // If no auth at all, redirect to admin-direct
     return NextResponse.redirect(new URL('/admin-direct', request.url));
   }
 }
