@@ -6,13 +6,45 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import Link from 'next/link';
-import { FaArrowLeft, FaPlus, FaTrash, FaGithub, FaLinkedin, FaInstagram, FaTwitter, FaCode, FaLink, FaDownload } from 'react-icons/fa';
+import { FaArrowLeft, FaPlus, FaTrash, FaGithub, FaLinkedin, FaInstagram, FaTwitter, FaCode, FaLink, FaDownload, FaStar, FaCodeBranch } from 'react-icons/fa';
 
 interface SocialLink {
   id?: string;
   platform: string;
   url: string;
   icon: string;
+  metadata?: {
+    name?: string;
+    bio?: string;
+    location?: string;
+    repositories?: Array<{
+      name: string;
+      description: string;
+      url: string;
+      stars: number;
+      language: string;
+      topics: string[];
+    }>;
+    experience?: Array<{
+      title: string;
+      company: string;
+      duration: string;
+      description: string;
+    }>;
+    certifications?: Array<{
+      name: string;
+      issuer: string;
+      date: string;
+    }>;
+    totalSolved?: number;
+    acceptanceRate?: number;
+    followers?: number;
+    publicRepos?: number;
+    easySolved?: number;
+    mediumSolved?: number;
+    hardSolved?: number;
+    ranking?: string;
+  };
 }
 
 interface ImportResponse {
@@ -24,6 +56,49 @@ interface ImportResponse {
   avatar?: string;
   followers?: number;
   publicRepos?: number;
+  headline?: string;
+  experience?: Array<{
+    title: string;
+    company: string;
+    duration: string;
+    description: string;
+  }>;
+  certifications?: Array<{
+    name: string;
+    issuer: string;
+    date: string;
+  }>;
+  totalSolved?: number;
+  acceptanceRate?: number;
+  username?: string;
+  ranking?: string;
+  repositories?: Array<{
+    name: string;
+    description: string;
+    url: string;
+    stars: number;
+    language: string;
+    topics: string[];
+  }>;
+  experience?: Array<{
+    title: string;
+    company: string;
+    duration: string;
+    description: string;
+  }>;
+  certifications?: Array<{
+    name: string;
+    issuer: string;
+    date: string;
+  }>;
+  totalSolved?: number;
+  acceptanceRate?: number;
+  followers?: number;
+  publicRepos?: number;
+  headline?: string;
+  easySolved?: number;
+  mediumSolved?: number;
+  hardSolved?: number;
 }
 
 const PLATFORM_OPTIONS = [
@@ -50,6 +125,7 @@ export default function SocialLinksPage() {
   const [importPlatform, setImportPlatform] = useState('github');
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState('');
+  const [refreshing, setRefreshing] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -179,14 +255,30 @@ export default function SocialLinksPage() {
         return;
       }
       
-      const importData: ImportResponse = await response.json();
+      const importData = await response.json();
       
       // Create a new social link with the imported data
       const platformInfo = PLATFORM_OPTIONS.find(p => p.value === importPlatform);
       const newLink: SocialLink = {
         platform: importPlatform,
         url: importData.url,
-        icon: platformInfo ? platformInfo.icon : 'FaLink'
+        icon: platformInfo ? platformInfo.icon : 'FaLink',
+        metadata: {
+          name: importData.name,
+          bio: importData.bio,
+          location: importData.location,
+          repositories: importData.repositories,
+          experience: importData.experience,
+          certifications: importData.certifications,
+          totalSolved: importData.totalSolved,
+          acceptanceRate: importData.acceptanceRate,
+          followers: importData.followers,
+          publicRepos: importData.publicRepos,
+          easySolved: importData.easySolved,
+          mediumSolved: importData.mediumSolved,
+          hardSolved: importData.hardSolved,
+          ranking: importData.ranking
+        }
       };
       
       // Add the new link to the list
@@ -195,8 +287,38 @@ export default function SocialLinksPage() {
       // Reset import form
       setImportUsername('');
       
-      // Show confirmation
-      alert(`Successfully imported ${importPlatform} profile!`);
+      // Show success message with platform-specific details
+      let successMessage = `Successfully imported ${importPlatform} profile!`;
+      if (importPlatform === 'github') {
+        successMessage += `\n• Name: ${importData.name || 'N/A'}`;
+        successMessage += `\n• Bio: ${importData.bio || 'N/A'}`;
+        successMessage += `\n• Location: ${importData.location || 'N/A'}`;
+        successMessage += `\n• Followers: ${importData.followers || 0}`;
+        successMessage += `\n• Public Repos: ${importData.publicRepos || 0}`;
+        if (importData.repositories) {
+          successMessage += `\n• Imported ${importData.repositories.length} repositories`;
+        }
+      } else if (importPlatform === 'linkedin') {
+        successMessage += `\n• Name: ${importData.name || 'N/A'}`;
+        successMessage += `\n• Headline: ${importData.headline || 'N/A'}`;
+        successMessage += `\n• Location: ${importData.location || 'N/A'}`;
+        if (importData.experience) {
+          successMessage += `\n• Imported ${importData.experience.length} experiences`;
+        }
+        if (importData.certifications) {
+          successMessage += `\n• Imported ${importData.certifications.length} certifications`;
+        }
+      } else if (importPlatform === 'leetcode') {
+        successMessage += `\n• Username: ${importData.username}`;
+        successMessage += `\n• Total Solved: ${importData.totalSolved || 0}`;
+        successMessage += `\n• Acceptance Rate: ${importData.acceptanceRate || 0}%`;
+        successMessage += `\n• Ranking: ${importData.ranking || 'N/A'}`;
+        successMessage += `\n• Easy: ${importData.easySolved || 0}`;
+        successMessage += `\n• Medium: ${importData.mediumSolved || 0}`;
+        successMessage += `\n• Hard: ${importData.hardSolved || 0}`;
+      }
+      
+      alert(successMessage);
       
     } catch (error) {
       console.error('Import error:', error);
@@ -214,6 +336,72 @@ export default function SocialLinksPage() {
       case 'FaTwitter': return <FaTwitter />;
       case 'FaCode': return <FaCode />;
       default: return <FaLink />;
+    }
+  };
+
+  // Add refresh function
+  const refreshSocialLink = async (index: number) => {
+    const link = socialLinks[index];
+    if (!link.url) return;
+
+    setRefreshing(prev => ({ ...prev, [index]: true }));
+    
+    try {
+      // Extract username from URL
+      const url = new URL(link.url);
+      const username = url.pathname.split('/').pop();
+      
+      if (!username) {
+        throw new Error('Invalid URL format');
+      }
+
+      const response = await fetch('/api/admin/social-import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          platform: link.platform,
+          username: username,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to refresh data');
+      }
+
+      const importData = await response.json();
+      
+      // Update the link with fresh data
+      const updatedSocialLinks = [...socialLinks];
+      updatedSocialLinks[index] = {
+        ...link,
+        metadata: {
+          name: importData.name,
+          bio: importData.bio,
+          location: importData.location,
+          repositories: importData.repositories,
+          experience: importData.experience,
+          certifications: importData.certifications,
+          totalSolved: importData.totalSolved,
+          acceptanceRate: importData.acceptanceRate,
+          followers: importData.followers,
+          publicRepos: importData.publicRepos,
+          easySolved: importData.easySolved,
+          mediumSolved: importData.mediumSolved,
+          hardSolved: importData.hardSolved,
+          ranking: importData.ranking
+        }
+      };
+      
+      setSocialLinks(updatedSocialLinks);
+      alert('Profile data refreshed successfully!');
+    } catch (error) {
+      console.error('Refresh error:', error);
+      alert(error instanceof Error ? error.message : 'Failed to refresh profile data');
+    } finally {
+      setRefreshing(prev => ({ ...prev, [index]: false }));
     }
   };
 
@@ -314,39 +502,239 @@ export default function SocialLinksPage() {
                   key={link.id || index} 
                   className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg relative"
                 >
-                  <button
-                    type="button"
-                    onClick={() => removeSocialLink(index)}
-                    className="absolute top-4 right-4 text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    <FaTrash className="h-4 w-4" />
-                  </button>
-                  
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="flex-shrink-0 h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400">
-                      {getIconComponent(link.icon)}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-shrink-0 h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        {getIconComponent(link.icon)}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {PLATFORM_OPTIONS.find(p => p.value === link.platform)?.label || link.platform}
+                        </p>
+                        {link.metadata?.name && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {link.metadata.name}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {PLATFORM_OPTIONS.find(p => p.value === link.platform)?.label || link.platform}
-                      </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => refreshSocialLink(index)}
+                        disabled={refreshing[index]}
+                        className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                      >
+                        {refreshing[index] ? (
+                          <span className="flex items-center">
+                            <span className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-current rounded-full"></span>
+                            Refreshing...
+                          </span>
+                        ) : (
+                          <span className="flex items-center">
+                            <FaDownload className="h-4 w-4 mr-2" />
+                            Refresh
+                          </span>
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeSocialLink(index)}
+                        className="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        <FaTrash className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      URL
-                    </label>
-                    <Input
-                      value={link.url}
-                      onChange={(e) => {
-                        const updatedSocialLinks = [...socialLinks];
-                        updatedSocialLinks[index].url = e.target.value;
-                        setSocialLinks(updatedSocialLinks);
-                      }}
-                      className="w-full"
-                      required
-                    />
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        URL
+                      </label>
+                      <Input
+                        value={link.url}
+                        onChange={(e) => {
+                          const updatedSocialLinks = [...socialLinks];
+                          updatedSocialLinks[index].url = e.target.value;
+                          setSocialLinks(updatedSocialLinks);
+                        }}
+                        className="w-full"
+                        required
+                      />
+                    </div>
+
+                    {/* Display platform-specific metadata */}
+                    {link.metadata && (
+                      <div className="mt-4 space-y-4">
+                        {/* Basic Info */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {link.metadata.name && (
+                            <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Name</h4>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">{link.metadata.name}</p>
+                            </div>
+                          )}
+                          {link.metadata.location && (
+                            <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Location</h4>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">{link.metadata.location}</p>
+                            </div>
+                          )}
+                          {link.metadata.bio && (
+                            <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg md:col-span-2">
+                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Bio</h4>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">{link.metadata.bio}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* GitHub Stats */}
+                        {link.platform === 'github' && (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {link.metadata.followers !== undefined && (
+                              <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Followers</h4>
+                                <p className="text-lg font-semibold text-gray-900 dark:text-white">{link.metadata.followers}</p>
+                              </div>
+                            )}
+                            {link.metadata.publicRepos !== undefined && (
+                              <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Public Repos</h4>
+                                <p className="text-lg font-semibold text-gray-900 dark:text-white">{link.metadata.publicRepos}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* LeetCode Stats */}
+                        {link.platform === 'leetcode' && (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              {link.metadata.totalSolved !== undefined && (
+                                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Solved</h4>
+                                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{link.metadata.totalSolved}</p>
+                                </div>
+                              )}
+                              {link.metadata.acceptanceRate !== undefined && (
+                                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Acceptance Rate</h4>
+                                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{link.metadata.acceptanceRate}%</p>
+                                </div>
+                              )}
+                              {link.metadata.ranking !== undefined && (
+                                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Ranking</h4>
+                                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{link.metadata.ranking}</p>
+                                </div>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-3 gap-4">
+                              {link.metadata.easySolved !== undefined && (
+                                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                  <h4 className="text-sm font-medium text-green-700 dark:text-green-400">Easy</h4>
+                                  <p className="text-lg font-semibold text-green-900 dark:text-green-300">{link.metadata.easySolved}</p>
+                                </div>
+                              )}
+                              {link.metadata.mediumSolved !== undefined && (
+                                <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                                  <h4 className="text-sm font-medium text-yellow-700 dark:text-yellow-400">Medium</h4>
+                                  <p className="text-lg font-semibold text-yellow-900 dark:text-yellow-300">{link.metadata.mediumSolved}</p>
+                                </div>
+                              )}
+                              {link.metadata.hardSolved !== undefined && (
+                                <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                                  <h4 className="text-sm font-medium text-red-700 dark:text-red-400">Hard</h4>
+                                  <p className="text-lg font-semibold text-red-900 dark:text-red-300">{link.metadata.hardSolved}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Repositories */}
+                        {link.metadata.repositories && link.metadata.repositories.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Top Repositories</h4>
+                            <div className="space-y-2">
+                              {link.metadata.repositories.map((repo, i) => (
+                                <div key={i} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                  <div className="flex items-center justify-between">
+                                    <a href={repo.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                                      {repo.name}
+                                    </a>
+                                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                                      <span className="flex items-center">
+                                        <FaStar className="h-3 w-3 mr-1" />
+                                        {repo.stars}
+                                      </span>
+                                      {repo.language && (
+                                        <span className="flex items-center">
+                                          <FaCodeBranch className="h-3 w-3 mr-1" />
+                                          {repo.language}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {repo.description && (
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{repo.description}</p>
+                                  )}
+                                  {repo.topics && repo.topics.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                      {repo.topics.map((topic, j) => (
+                                        <span key={j} className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-xs">
+                                          {topic}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Experience */}
+                        {link.metadata.experience && link.metadata.experience.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Experience</h4>
+                            <div className="space-y-2">
+                              {link.metadata.experience.map((exp, i) => (
+                                <div key={i} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                  <p className="font-medium">{exp.title}</p>
+                                  <p className="text-gray-600 dark:text-gray-400">{exp.company}</p>
+                                  <p className="text-gray-500 dark:text-gray-500 text-xs">{exp.duration}</p>
+                                  {exp.description && (
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{exp.description}</p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Certifications */}
+                        {link.metadata.certifications && link.metadata.certifications.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Certifications</h4>
+                            <div className="space-y-2">
+                              {link.metadata.certifications.map((cert, i) => (
+                                <div key={i} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                  <p className="font-medium">{cert.name}</p>
+                                  <p className="text-gray-600 dark:text-gray-400">{cert.issuer}</p>
+                                  <p className="text-gray-500 dark:text-gray-500 text-xs">{cert.date}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
