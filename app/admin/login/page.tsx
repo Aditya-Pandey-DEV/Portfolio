@@ -1,127 +1,157 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { Input } from '@/app/components/ui/input';
 import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { Label } from '@/app/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { useToast } from '@/app/components/ui/use-toast';
 import Link from 'next/link';
+import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [formValues, setFormValues] = useState({
-    email: '',
-    password: '',
-  });
+  const [showCredentials, setShowCredentials] = useState(false);
+  const [currentCredentials, setCurrentCredentials] = useState<{
+    email: string;
+    password: string;
+  } | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormValues((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  useEffect(() => {
+    // Check if user is coming from /god path
+    const referrer = document.referrer;
+    const isFromGod = referrer.includes('/god');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    // Fetch current credentials
+    const fetchCredentials = async () => {
+      try {
+        const response = await fetch('/api/admin/credentials');
+        const data = await response.json();
+        
+        if (response.ok) {
+          setCurrentCredentials(data);
+          // Show credentials if coming from /god or if using default credentials
+          setShowCredentials(
+            isFromGod || 
+            (data.email === 'admin@example.com' && data.password === 'Admin@123')
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching credentials:', error);
+      }
+    };
+
+    fetchCredentials();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
 
     try {
-      const response = await signIn('credentials', {
+      const result = await signIn('credentials', {
+        email,
+        password,
         redirect: false,
-        email: formValues.email,
-        password: formValues.password,
       });
 
-      if (response?.error) {
-        setError('Invalid email or password');
-        setLoading(false);
-        return;
+      if (result?.error) {
+        toast({
+          title: "Error",
+          description: "Invalid email or password",
+          variant: "destructive",
+        });
+      } else {
+        router.push('/admin/dashboard');
       }
-
-      router.push('/admin/dashboard');
     } catch (error) {
-      console.error('Login error:', error);
-      setError('An unexpected error occurred');
+      toast({
+        title: "Error",
+        description: "An error occurred during sign in",
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold text-center">
             Admin Login
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+          </CardTitle>
+          <p className="text-center text-sm text-muted-foreground">
             Sign in to access the admin dashboard
           </p>
-        </div>
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 p-3 rounded-md text-sm">
-              {error}
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="admin@example.com"
+                required
+              />
             </div>
-          )}
-          
-          <div className="space-y-4">
-            <Input
-              label="Email"
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={formValues.email}
-              onChange={handleChange}
-              placeholder="admin@example.com"
-            />
-            
-            <Input
-              label="Password"
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={formValues.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-            />
-          </div>
-          
-          <div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                required
+              />
+            </div>
             <Button
               type="submit"
               className="w-full"
-              isLoading={loading}
               disabled={loading}
             >
-              Sign in
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                'Sign in'
+              )}
             </Button>
-          </div>
-          
-          <div className="text-center text-sm">
-            <Link 
+          </form>
+
+          {showCredentials && currentCredentials && (
+            <div className="mt-6 p-4 bg-muted rounded-lg">
+              <h3 className="text-sm font-medium mb-2">Demo credentials:</h3>
+              <div className="space-y-1 text-sm">
+                <p>Email: {currentCredentials.email}</p>
+                <p>Password: {currentCredentials.password}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6 text-center">
+            <Link
               href="/"
-              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              className="text-sm text-muted-foreground hover:text-primary"
             >
               Back to home
             </Link>
           </div>
-        </form>
-        
-        <div className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
-          <p>Demo credentials:</p>
-          <p>Email: admin@example.com</p>
-          <p>Password: Admin@123</p>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 } 

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/lib/auth';
 import { PrismaClient } from '@/app/generated/prisma';
 import { hash } from 'bcrypt';
+import { connectToDatabase } from '@/app/lib/db';
 
 const prisma = new PrismaClient();
 
@@ -124,6 +125,45 @@ export async function POST(request: Request) {
     console.error('POST update credentials error:', error);
     return NextResponse.json(
       { error: 'Failed to update credentials' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function getCredentials() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const db = await connectToDatabase();
+    if (!db) {
+      return NextResponse.json(
+        { error: 'Database connection failed' },
+        { status: 500 }
+      );
+    }
+
+    // Get the current admin credentials
+    const credentials = await db.collection('credentials').findOne({ type: 'admin' });
+
+    if (!credentials) {
+      // Return default credentials if none are set
+      return NextResponse.json({
+        email: 'admin@example.com',
+        password: 'Admin@123'
+      });
+    }
+
+    return NextResponse.json({
+      email: credentials.email,
+      password: credentials.password
+    });
+  } catch (error) {
+    console.error('Error fetching credentials:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
