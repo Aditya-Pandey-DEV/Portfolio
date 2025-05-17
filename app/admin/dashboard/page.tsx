@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/app/components/ui/button';
 import Link from 'next/link';
 import { FaUser, FaBriefcase, FaGraduationCap, FaLaptopCode, FaCertificate, FaTools, FaLink, FaImage, FaSearch, FaLock, FaPalette } from 'react-icons/fa';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Settings, Users, FileText, Database, Power } from "lucide-react";
 
 export default function AdminDashboard() {
