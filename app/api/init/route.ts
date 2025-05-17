@@ -3,6 +3,8 @@ import { MongoClient } from "mongodb";
 import { hash } from "bcrypt";
 import prisma from "@/app/lib/prisma-wrapper";
 
+const VALID_PASSCODE = '282499'; // From your fix-deploy.js
+
 export async function GET(request: NextRequest) {
   console.log("Initializing database...");
   const results: Record<string, any> = {
@@ -15,6 +17,36 @@ export async function GET(request: NextRequest) {
   };
 
   try {
+    // Check database connection
+    const dbStatus = await prisma.$queryRaw`SELECT 1`
+      .then(() => ({ url: 'configured', status: 'connected' }))
+      .catch(() => ({ url: 'configured', status: 'disconnected' }));
+
+    // Get current theme
+    const theme = await prisma.theme.findFirst() || {
+      id: 'default',
+      name: null,
+      createdAt: new Date().toISOString()
+    };
+
+    // Define startup steps
+    const steps = [
+      {
+        name: 'Database Connection',
+        status: dbStatus.status === 'connected' ? 'completed' : 'failed',
+        message: dbStatus.status
+      },
+      {
+        name: 'Theme Configuration',
+        status: theme ? 'completed' : 'pending',
+        message: theme?.name || 'Default'
+      },
+      {
+        name: 'System Initialization',
+        status: 'pending'
+      }
+    ];
+
     // 1. Check if theme exists and try to fix it
     try {
       const existingTheme = await prisma.theme.findFirst();
@@ -230,6 +262,48 @@ export async function GET(request: NextRequest) {
         'Cache-Control': 'no-store'
       }
     });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const { passcode } = await request.json();
+
+    if (passcode !== VALID_PASSCODE) {
+      return NextResponse.json(
+        { error: 'Invalid passcode' },
+        { status: 401 }
+      );
+    }
+
+    // Initialize database with default theme if none exists
+    const existingTheme = await prisma.theme.findFirst();
+    if (!existingTheme) {
+      await prisma.theme.create({
+        data: {
+          name: 'Default Theme',
+          colors: {
+            primary: '#000000',
+            secondary: '#ffffff',
+            accent: '#1e40af'
+          }
+        }
+      });
+    }
+
+    // Add any other initialization steps here
+    // For example: creating default admin user, setting up initial content, etc.
+
+    return NextResponse.json({
+      message: 'System initialized successfully',
+      status: 'completed'
+    });
+  } catch (error) {
+    console.error('Startup initialization error:', error);
+    return NextResponse.json(
+      { error: 'Failed to initialize system' },
+      { status: 500 }
+    );
   }
 }
 

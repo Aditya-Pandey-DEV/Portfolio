@@ -6,6 +6,8 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/app/components/ui/button';
 import Link from 'next/link';
 import { FaUser, FaBriefcase, FaGraduationCap, FaLaptopCode, FaCertificate, FaTools, FaLink, FaImage, FaSearch, FaLock, FaPalette } from 'react-icons/fa';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Settings, Users, FileText, Database, Power } from "lucide-react";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -147,6 +149,88 @@ export default function AdminDashboard() {
               </div>
             </Link>
           ))}
+        </div>
+
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Link href="/admin/dashboard/settings">
+            <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Manage site settings and configuration
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/admin/dashboard/users">
+            <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Users
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Manage user accounts and permissions
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/admin/dashboard/content">
+            <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Content
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Manage site content and pages
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/admin/dashboard/database">
+            <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="h-5 w-5" />
+                  Database
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  View and manage database
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/admin/startup">
+            <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Power className="h-5 w-5" />
+                  System Startup
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Initialize and check system status
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       </div>
     </div>
