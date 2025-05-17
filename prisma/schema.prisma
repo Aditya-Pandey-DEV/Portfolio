@@ -1,0 +1,180 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Resume {
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  title         String
+  email         String
+  phone         String
+  location      String
+  about         String
+  profileImage  String?
+  skills        Skill[]
+  experiences   Experience[]
+  education     Education[]
+  projects      Project[]
+  certifications Certification[]
+  socialLinks   SocialLink[]
+  focusAreas    FocusArea[]
+  seo           SEO?
+  themes        Theme[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model Skill {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  category  String
+  resumeId  String   @db.ObjectId
+  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+}
+
+model Experience {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  company     String
+  position    String
+  startDate   DateTime
+  endDate     DateTime?
+  description String
+  resumeId    String    @db.ObjectId
+  resume      Resume    @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+}
+
+model Education {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  institution String
+  degree      String
+  field       String
+  startDate   DateTime
+  endDate     DateTime?
+  gpa         String?
+  resumeId    String    @db.ObjectId
+  resume      Resume    @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  technologies String
+  image       String?
+  link        String?
+  resumeId    String   @db.ObjectId
+  resume      Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+}
+
+model Certification {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  issuer      String
+  date        DateTime
+  image       String?
+  resumeId    String   @db.ObjectId
+  resume      Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+}
+
+model SocialLink {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  platform    String
+  url         String
+  icon        String
+  resumeId    String   @db.ObjectId
+  resume      Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+}
+
+model SEO {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  title             String
+  description       String
+  keywords          String
+  ogTitle           String?
+  ogDescription     String?
+  ogImage           String?
+  twitterTitle      String?
+  twitterDescription String?
+  twitterImage      String?
+  canonicalUrl      String?
+  resumeId          String  @unique @db.ObjectId
+  resume            Resume  @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+}
+
+model Theme {
+  id               String  @id @default(auto()) @map("_id") @db.ObjectId
+  primaryColor     String  @default("#3b82f6")
+  secondaryColor   String  @default("#1e40af")
+  accentColor      String  @default("#f59e0b")
+  backgroundColor  String  @default("#ffffff")
+  textColor        String  @default("#171717")
+  headingColor     String  @default("#111827")
+  linkColor        String  @default("#3b82f6")
+  buttonColor      String  @default("#3b82f6")
+  buttonTextColor  String  @default("#ffffff")
+  cardColor        String  @default("#f9fafb")
+  borderColor      String  @default("#e5e7eb")
+  
+  // Dark mode colors
+  darkPrimaryColor     String  @default("#3b82f6")
+  darkSecondaryColor   String  @default("#60a5fa")
+  darkAccentColor      String  @default("#f59e0b")
+  darkBackgroundColor  String  @default("#0a0a0a")
+  darkTextColor        String  @default("#f3f4f6")
+  darkHeadingColor     String  @default("#f9fafb")
+  darkLinkColor        String  @default("#60a5fa")
+  darkButtonColor      String  @default("#3b82f6")
+  darkButtonTextColor  String  @default("#ffffff")
+  darkCardColor        String  @default("#1f2937")
+  darkBorderColor      String  @default("#374151")
+  
+  // Font settings
+  headingFont     String  @default("Inter")
+  bodyFont        String  @default("Inter")
+  
+  // Other settings
+  borderRadius    Int     @default(8)
+  buttonRadius    Int     @default(8)
+  cardRadius      Int     @default(12)
+  
+  // Additional metadata
+  name            String? @default("Default Theme")
+  isDefault       Boolean @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations - optional connection to Resume
+  resumeId        String?  @db.ObjectId
+  resume          Resume?  @relation(fields: [resumeId], references: [id], onDelete: SetNull)
+}
+
+// Focus Area model to represent specialized areas in the about section
+model FocusArea {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  icon        String   // Icon name (e.g., "fas fa-code")
+  resumeId    String   @db.ObjectId
+  resume      Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+}

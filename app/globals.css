@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+:root {
+  /* Light mode (default) */
+  --background: #ffffff;
+  --foreground: #171717;
+  --primary: #3b82f6;
+  --secondary: #1e40af;
+  --accent: #f59e0b;
+  --heading: #111827;
+  --link: #3b82f6;
+  --button: #3b82f6;
+  --button-text: #ffffff;
+  --card: #f9fafb;
+  --border: #e5e7eb;
+  
+  /* Typography */
+  --heading-font: 'Inter', sans-serif;
+  --body-font: 'Inter', sans-serif;
+  
+  /* Sizing */
+  --border-radius: 8px;
+  --button-radius: 8px;
+  --card-radius: 12px;
+  
+  /* Spaces */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+}
+
+.dark {
+  --background: var(--dark-background, #0a0a0a);
+  --foreground: var(--dark-foreground, #f3f4f6);
+  --primary: var(--dark-primary, #3b82f6);
+  --secondary: var(--dark-secondary, #60a5fa);
+  --accent: var(--dark-accent, #f59e0b);
+  --heading: var(--dark-heading, #f9fafb);
+  --link: var(--dark-link, #60a5fa);
+  --button: var(--dark-button, #3b82f6);
+  --button-text: var(--dark-button-text, #ffffff);
+  --card: var(--dark-card, #1f2937);
+  --border: var(--dark-border, #374151);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--body-font);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--body-font, 'Inter'), sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--heading);
+  font-family: var(--heading-font, 'Inter'), sans-serif;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+
+button, .button {
+  background-color: var(--button);
+  color: var(--button-text);
+  border-radius: var(--button-radius);
+  transition: opacity 0.2s ease-in-out;
+}
+
+button:hover, .button:hover {
+  opacity: 0.9;
+}
+
+.card {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+}
+
+/* Tailwind utility classes for theme variables */
+@layer utilities {
+  .bg-primary {
+    background-color: var(--primary);
+  }
+  
+  .bg-secondary {
+    background-color: var(--secondary);
+  }
+  
+  .bg-accent {
+    background-color: var(--accent);
+  }
+  
+  .text-primary {
+    color: var(--primary);
+  }
+  
+  .text-secondary {
+    color: var(--secondary);
+  }
+  
+  .text-accent {
+    color: var(--accent);
+  }
+  
+  .border-primary {
+    border-color: var(--primary);
+  }
+}
