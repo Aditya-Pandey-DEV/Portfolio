@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/lib/auth';
-import { PrismaClient } from '@/app/generated/prisma';
-
-const prisma = new PrismaClient();
+import { getPrismaClient } from '@/app/lib/prisma';
 
 // GET: Fetch personal information from the resume
 export async function GET() {
@@ -53,7 +51,7 @@ export async function POST(request: Request) {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+    const prisma = getPrismaClient();
     const { name, title, email, phone, location, about } = await request.json();
     
     // Get the first resume

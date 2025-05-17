@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
-import { PrismaClient } from "@/app/generated/prisma";
-
-const prisma = new PrismaClient();
+import { getPrismaClient } from '@/app/lib/prisma';
 
 // Email validation function
 function isValidEmail(email: string): boolean {
