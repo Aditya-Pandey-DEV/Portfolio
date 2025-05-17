@@ -29,8 +29,8 @@ export default function AdminDashboard() {
       const response = await fetch('/api/admin/credentials');
       const data = await response.json();
       
-      // Check if credentials are still default
-      if (data.isDefault) {
+      // Only show default credentials if user has changed them
+      if (data.isDefault && !data.allowDefaultLogin) {
         setDefaultCredentials({
           email: 'admin@example.com',
           password: 'Admin@123'

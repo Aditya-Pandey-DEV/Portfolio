@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/ca
 import { useToast } from '@/app/components/ui/use-toast';
 import Link from 'next/link';
 import { Loader2, Copy } from 'lucide-react';
+import { FaPaste } from 'react-icons/fa';
 
 function LoginForm() {
   const router = useRouter();
@@ -20,6 +21,9 @@ function LoginForm() {
   const [currentCredentials, setCurrentCredentials] = useState<{
     email: string;
   } | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     // Check if user is coming from /god path
@@ -60,13 +64,15 @@ function LoginForm() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
+  const handlePasteDefault = () => {
+    setEmail('admin@example.com');
+    setPassword('Admin@123');
+  };
 
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
 
     try {
       const result = await signIn('credentials', {
@@ -76,20 +82,12 @@ function LoginForm() {
       });
 
       if (result?.error) {
-        toast({
-          title: "Error",
-          description: "Invalid email or password",
-          variant: "destructive",
-        });
+        setError('Invalid email or password');
       } else {
         router.push('/admin/dashboard');
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "An error occurred during sign in",
-        variant: "destructive",
-      });
+      setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -110,13 +108,28 @@ function LoginForm() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="admin@example.com"
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="admin@example.com"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  onClick={handlePasteDefault}
+                  title="Paste default credentials"
+                >
+                  <FaPaste className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
@@ -125,6 +138,9 @@ function LoginForm() {
                 name="password"
                 type="password"
                 required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
             <Button
@@ -165,6 +181,10 @@ function LoginForm() {
                 </p>
               </div>
             </div>
+          )}
+
+          {error && (
+            <div className="text-red-500 text-sm text-center">{error}</div>
           )}
 
           <div className="mt-6 text-center">

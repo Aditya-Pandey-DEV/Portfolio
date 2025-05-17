@@ -20,7 +20,8 @@ export async function GET() {
       return NextResponse.json({
         email: user?.email || 'admin@example.com',
         isDefault,
-        password: isDefault ? 'Admin@123' : undefined
+        password: isDefault ? 'Admin@123' : undefined,
+        allowDefaultLogin: true // Always allow default login from god page
       });
     }
 
@@ -35,10 +36,13 @@ export async function GET() {
 
     const user = await prisma.user.findFirst();
     const isDefault = !user || user.email === 'admin@example.com';
+    const hasChangedCredentials = user && user.email !== 'admin@example.com';
+    
     return NextResponse.json({
       email: user?.email || 'admin@example.com',
       isDefault,
-      password: isDefault ? 'Admin@123' : undefined
+      password: isDefault ? 'Admin@123' : undefined,
+      allowDefaultLogin: hasChangedCredentials // Only show default credentials if user has changed them
     });
 
   } catch (error) {
@@ -94,6 +98,8 @@ export async function POST(request: Request) {
       }
       
       updateData.email = email;
+      // Store the original email to allow default login
+      updateData.originalEmail = 'admin@example.com';
     }
     
     // If changing password, verify current password first
@@ -118,6 +124,8 @@ export async function POST(request: Request) {
       
       // Hash the new password
       updateData.password = await hash(newPassword, 10);
+      // Store the original password hash to allow default login
+      updateData.originalPasswordHash = await hash('Admin@123', 10);
     }
     
     // Update the user
