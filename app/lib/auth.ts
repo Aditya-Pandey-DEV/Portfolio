@@ -1,20 +1,16 @@
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { NextAuthOptions, getServerSession } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { compare } from 'bcrypt';
+import { compare, hash } from 'bcrypt';
 import prisma from '@/app/lib/prisma-wrapper';
 import { headers } from 'next/headers';
-import { hash } from 'bcrypt';
 
 // Determine the base URL dynamically based on environment variables and request
 const getBaseUrl = () => {
-  // For Vercel deployments, use VERCEL_URL
   if (process.env.VERCEL_URL) {
-    // Make sure to use https for Vercel URLs
     return `https://${process.env.VERCEL_URL}`;
   }
   
-  // Try to extract host from headers in a server context
   try {
     const headersList = headers();
     const host = headersList.get('host');
@@ -23,22 +19,10 @@ const getBaseUrl = () => {
       return `${protocol}://${host}`;
     }
   } catch (e) {
-    // Headers might not be available in all contexts
     console.log('Could not access request headers');
   }
   
-  // Fallback to NEXTAUTH_URL if set
-  if (process.env.NEXTAUTH_URL) {
-    return process.env.NEXTAUTH_URL;
-  }
-  
-  // Local development fallback
-  if (process.env.NODE_ENV === 'development') {
-    return 'http://localhost:3000';
-  }
-  
-  // Ultimate fallback - likely a Vercel deployment
-  return 'https://your-portfolio-url.vercel.app';
+  return process.env.NEXTAUTH_URL || 'http://localhost:3000';
 };
 
 // Set NEXTAUTH_URL dynamically if it's not already set
@@ -64,7 +48,7 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null;
+          throw new Error('Email and password are required');
         }
 
         try {
@@ -89,7 +73,7 @@ export const authOptions: NextAuthOptions = {
                 name: user.name
               };
             }
-            return null;
+            throw new Error('Invalid default credentials');
           }
 
           // For existing users, check credentials normally
@@ -98,13 +82,13 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (!user) {
-            return null;
+            throw new Error('No user found with this email');
           }
 
           const isPasswordValid = await compare(credentials.password, user.password);
 
           if (!isPasswordValid) {
-            return null;
+            throw new Error('Invalid password');
           }
 
           return {
@@ -114,7 +98,7 @@ export const authOptions: NextAuthOptions = {
           };
         } catch (error) {
           console.error('Auth error:', error);
-          return null;
+          throw error;
         }
       }
     })
@@ -125,6 +109,7 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -139,30 +124,16 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-    // Add a callback to detect URL mismatches
     async redirect({ url, baseUrl }) {
-      console.log(`Redirect callback - URL: ${url}, BaseUrl: ${baseUrl}`);
-      
-      // Always allow admin dashboard redirects
-      if (url.includes('/admin/dashboard')) {
-        console.log('Allowing admin dashboard redirect');
-        return url;
-      }
-      
-      // Get the current base URL dynamically
-      const dynamicBaseUrl = getBaseUrl();
-      console.log(`DynamicBaseUrl: ${dynamicBaseUrl}`);
-      
-      // If the URL starts with a slash, join it with the dynamic base URL
+      // Allow relative URLs
       if (url.startsWith('/')) {
-        return `${dynamicBaseUrl}${url}`;
+        return `${baseUrl}${url}`;
       }
-      // If the URL is on the same site, return it as is
-      else if (url.startsWith(dynamicBaseUrl) || url.startsWith(baseUrl)) {
+      // Allow URLs from the same origin
+      else if (new URL(url).origin === baseUrl) {
         return url;
       }
-      // Otherwise, return the dynamic base URL
-      return dynamicBaseUrl;
+      return baseUrl;
     },
   },
   cookies: {
@@ -177,8 +148,7 @@ export const authOptions: NextAuthOptions = {
       },
     },
   },
-  // More verbose debugging in production to catch issues
-  debug: process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'development',
+  debug: process.env.NODE_ENV === 'development',
   secret: process.env.NEXTAUTH_SECRET,
 };
 

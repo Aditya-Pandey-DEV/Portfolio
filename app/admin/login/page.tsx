@@ -26,6 +26,12 @@ function LoginForm() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // Check for error in URL
+    const errorParam = searchParams.get('error');
+    if (errorParam === 'Configuration') {
+      setError('Please configure your environment variables first. Check the setup page for details.');
+    }
+
     // Check if user is coming from /god path
     const referrer = document.referrer || '';
     const isFromGod = referrer.includes('/god');
@@ -46,7 +52,7 @@ function LoginForm() {
     };
 
     fetchCredentials();
-  }, []);
+  }, [searchParams]);
 
   const copyToClipboard = async (text: string, type: string) => {
     try {
@@ -82,7 +88,7 @@ function LoginForm() {
       });
 
       if (result?.error) {
-        setError('Invalid email or password');
+        setError(result.error);
       } else {
         // Check if this is first login
         const response = await fetch('/api/admin/credentials');
