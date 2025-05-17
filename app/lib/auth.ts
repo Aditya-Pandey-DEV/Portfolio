@@ -4,6 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcrypt';
 import prisma from '@/app/lib/prisma-wrapper';
 import { headers } from 'next/headers';
+import { hash } from 'bcrypt';
 
 // Determine the base URL dynamically based on environment variables and request
 const getBaseUrl = () => {
@@ -58,98 +59,85 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
-        fromGodPage: { label: 'From God Page', type: 'text' },
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          console.log('Missing credentials');
           return null;
         }
 
-        console.log('Authorizing user with email:', credentials.email);
-        let user;
-        
         try {
-          user = await prisma.user.findUnique({
-            where: { email: credentials.email },
-          });
-        } catch (error) {
-          console.error('Error finding user:', error);
-          // Special case for the god page - allow hardcoded admin if db fails
-          if (credentials.email === 'admin@example.com' && 
-              credentials.password === 'Admin@123' && 
-              credentials.fromGodPage === 'true') {
-            console.log('DB error but god page login - creating fallback admin user');
-            return {
-              id: 'admin-fallback',
-              name: 'Admin User',
-              email: 'admin@example.com',
-            };
+          // Check if this is the first user (no users in database)
+          const userCount = await prisma.user.count();
+          const isFirstUser = userCount === 0;
+
+          // If it's the first user, allow default credentials
+          if (isFirstUser) {
+            if (credentials.email === 'admin@example.com' && credentials.password === 'Admin@123') {
+              // Create the first user with default credentials
+              const user = await prisma.user.create({
+                data: {
+                  email: 'admin@example.com',
+                  password: await hash('Admin@123', 10),
+                  name: 'Admin'
+                }
+              });
+              return {
+                id: user.id,
+                email: user.email,
+                name: user.name
+              };
+            }
+            return null;
           }
-          return null;
-        }
 
-        if (!user) {
-          console.log('User not found');
-          return null;
-        }
-        console.log('User found:', user.email);
+          // For existing users, check credentials normally
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email }
+          });
 
-        // If this is the god route using admin credentials, skip password check
-        if (credentials.email === 'admin@example.com' && 
-            credentials.password === 'Admin@123' && 
-            credentials.fromGodPage === 'true') {
-          console.log('Login from god page - bypassing password check');
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-          };
-        }
+          if (!user) {
+            return null;
+          }
 
-        try {
           const isPasswordValid = await compare(credentials.password, user.password);
 
           if (!isPasswordValid) {
-            console.log('Invalid password');
             return null;
           }
-          console.log('Password is valid');
 
           return {
             id: user.id,
-            name: user.name,
             email: user.email,
+            name: user.name
           };
         } catch (error) {
-          console.error('Error comparing passwords:', error);
+          console.error('Auth error:', error);
           return null;
         }
       }
-    }),
+    })
   ],
   pages: {
     signIn: '/admin/login',
-    error: '/god', // Redirect any auth errors back to the god page for retry
+    error: '/admin/login',
   },
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
-    async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.sub as string;
-      }
-      return session;
-    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
       }
       return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+      }
+      return session;
     },
     // Add a callback to detect URL mismatches
     async redirect({ url, baseUrl }) {

@@ -84,7 +84,17 @@ function LoginForm() {
       if (result?.error) {
         setError('Invalid email or password');
       } else {
-        router.push('/admin/dashboard');
+        // Check if this is first login
+        const response = await fetch('/api/admin/credentials');
+        const data = await response.json();
+        
+        if (data.isDefault) {
+          // Redirect to setup page for first-time configuration
+          router.push('/setup');
+        } else {
+          // Normal login flow
+          router.push('/admin/dashboard');
+        }
       }
     } catch (error) {
       setError('An error occurred. Please try again.');
@@ -184,7 +194,7 @@ function LoginForm() {
           )}
 
           {error && (
-            <div className="text-red-500 text-sm text-center">{error}</div>
+            <div className="mt-4 text-red-500 text-sm text-center">{error}</div>
           )}
 
           <div className="mt-6 text-center">
