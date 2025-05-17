@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/lib/auth';
-import { PrismaClient } from '@/app/generated/prisma';
+import prisma from '@/app/lib/db';
 import { hash } from 'bcrypt';
 import { connectToDatabase } from '@/app/lib/db';
 
-const prisma = new PrismaClient();
-
 // GET: Fetch current admin user (without password)
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
@@ -16,29 +14,29 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Fetch the admin user by email
-    const user = await prisma.user.findUnique({
-      where: { email: session.user?.email as string },
+    // Get the first user from the database
+    const user = await prisma.user.findFirst({
       select: {
-        id: true,
-        name: true,
         email: true,
-        // Don't include password in the response
+        password: true,
       },
     });
     
     if (!user) {
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: 'No user found' },
         { status: 404 }
       );
     }
     
-    return NextResponse.json(user);
+    return NextResponse.json({
+      email: user.email,
+      password: user.password,
+    });
   } catch (error) {
-    console.error('GET admin error:', error);
+    console.error('Error fetching credentials:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch admin data' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
