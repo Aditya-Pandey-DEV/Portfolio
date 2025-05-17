@@ -13,52 +13,32 @@ export async function GET() {
     const referer = headersList.get('referer') || '';
     const isFromGod = referer.includes('/god');
 
-    // If coming from /god path, show credentials without session check
+    // If coming from /god path, return credentials without session check
     if (isFromGod) {
-      const user = await prisma.user.findFirst({
-        select: {
-          email: true,
-          password: true,
-        },
-      });
-
-      // Always return credentials for /god path
+      const user = await prisma.user.findFirst();
       return NextResponse.json({
-        email: user?.email || 'admin@example.com',
-        password: user?.password || 'Admin@123'
+        email: user?.email || 'admin@example.com'
       });
     }
 
-    // For other paths, require authentication
+    // For other paths, check session
     const session = await getServerSession(authOptions);
-    
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    // Get the first user from the database
-    const user = await prisma.user.findFirst({
-      select: {
-        email: true,
-        password: true,
-      },
-    });
-    
-    if (!user) {
       return NextResponse.json(
-        { error: 'No user found' },
-        { status: 404 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       );
     }
-    
+
+    const user = await prisma.user.findFirst();
     return NextResponse.json({
-      email: user.email,
-      password: user.password,
+      email: user?.email || 'admin@example.com'
     });
+
   } catch (error) {
     console.error('Error fetching credentials:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to fetch credentials' },
       { status: 500 }
     );
   }

@@ -2,6 +2,18 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { compare } from 'bcrypt';
 
+// Common passwords to try
+const COMMON_PASSWORDS = [
+  'Admin@123',
+  'admin@123',
+  'admin123',
+  'Admin123',
+  'password',
+  'Password',
+  'Password123',
+  'password123'
+];
+
 export async function POST(request: Request) {
   try {
     const headersList = await headers();
@@ -24,13 +36,20 @@ export async function POST(request: Request) {
       );
     }
 
-    // Try to decrypt the password
-    // Note: This is a simplified example. In a real application,
-    // you would need to implement proper password decryption
-    // based on your encryption method
-    const decrypted = password.replace(/^\$2[aby]\$\d+\$/, '');
+    // Try to match the password with common passwords
+    for (const commonPassword of COMMON_PASSWORDS) {
+      const isMatch = await compare(commonPassword, password);
+      if (isMatch) {
+        return NextResponse.json({ decrypted: commonPassword });
+      }
+    }
 
-    return NextResponse.json({ decrypted });
+    // If no match found, return the original password
+    return NextResponse.json({ 
+      decrypted: 'Unable to decrypt. This is likely a custom password.',
+      original: password 
+    });
+
   } catch (error) {
     console.error('Error decrypting password:', error);
     return NextResponse.json(

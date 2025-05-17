@@ -9,8 +9,7 @@ import { Label } from '@/app/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { useToast } from '@/app/components/ui/use-toast';
 import Link from 'next/link';
-import { Loader2, Copy, Eye, EyeOff } from 'lucide-react';
-import { compare } from 'bcrypt';
+import { Loader2, Copy } from 'lucide-react';
 
 function LoginForm() {
   const router = useRouter();
@@ -20,10 +19,7 @@ function LoginForm() {
   const [showCredentials, setShowCredentials] = useState(false);
   const [currentCredentials, setCurrentCredentials] = useState<{
     email: string;
-    password: string;
   } | null>(null);
-  const [decryptedPassword, setDecryptedPassword] = useState<string>('');
-  const [showDecrypted, setShowDecrypted] = useState(false);
 
   useEffect(() => {
     // Check if user is coming from /god path
@@ -37,7 +33,7 @@ function LoginForm() {
         const data = await response.json();
         
         if (response.ok || isFromGod) {
-          setCurrentCredentials(data);
+          setCurrentCredentials({ email: data.email });
           setShowCredentials(true);
         }
       } catch (error) {
@@ -47,39 +43,6 @@ function LoginForm() {
 
     fetchCredentials();
   }, []);
-
-  const handleDecrypt = async () => {
-    if (!currentCredentials?.password) return;
-    
-    try {
-      // Try to decrypt the password
-      const response = await fetch('/api/admin/decrypt', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ password: currentCredentials.password }),
-      });
-      
-      if (response.ok) {
-        const { decrypted } = await response.json();
-        setDecryptedPassword(decrypted);
-        setShowDecrypted(true);
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to decrypt password",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to decrypt password",
-        variant: "destructive",
-      });
-    }
-  };
 
   const copyToClipboard = async (text: string, type: string) => {
     try {
@@ -182,7 +145,7 @@ function LoginForm() {
 
           {showCredentials && currentCredentials && (
             <div className="mt-6 p-4 bg-muted rounded-lg space-y-4">
-              <h3 className="text-sm font-medium mb-2">Current credentials:</h3>
+              <h3 className="text-sm font-medium mb-2">Current email:</h3>
               
               {/* Email section */}
               <div className="space-y-1">
@@ -200,49 +163,6 @@ function LoginForm() {
                 <p className="text-sm font-mono bg-background p-2 rounded">
                   {currentCredentials.email}
                 </p>
-              </div>
-
-              {/* Password section */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm">Password:</p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyToClipboard(currentCredentials.password, 'Encrypted password')}
-                    >
-                      <Copy className="h-4 w-4 mr-1" />
-                      Copy
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleDecrypt}
-                    >
-                      {showDecrypted ? (
-                        <EyeOff className="h-4 w-4 mr-1" />
-                      ) : (
-                        <Eye className="h-4 w-4 mr-1" />
-                      )}
-                      {showDecrypted ? 'Hide' : 'Decrypt'}
-                    </Button>
-                  </div>
-                </div>
-                <p className="text-sm font-mono bg-background p-2 rounded break-all">
-                  {showDecrypted ? decryptedPassword : currentCredentials.password}
-                </p>
-                {showDecrypted && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => copyToClipboard(decryptedPassword, 'Decrypted password')}
-                  >
-                    <Copy className="h-4 w-4 mr-1" />
-                    Copy Decrypted
-                  </Button>
-                )}
               </div>
             </div>
           )}
