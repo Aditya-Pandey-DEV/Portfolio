@@ -27,12 +27,12 @@ interface ImportResponse {
 }
 
 const PLATFORM_OPTIONS = [
-  { value: 'github', label: 'GitHub', icon: FaGithub },
-  { value: 'linkedin', label: 'LinkedIn', icon: FaLinkedin },
-  { value: 'instagram', label: 'Instagram', icon: FaInstagram },
-  { value: 'twitter', label: 'Twitter/X', icon: FaTwitter },
-  { value: 'leetcode', label: 'LeetCode', icon: FaCode },
-  { value: 'other', label: 'Other', icon: FaLink },
+  { value: 'github', label: 'GitHub', icon: 'FaGithub' },
+  { value: 'linkedin', label: 'LinkedIn', icon: 'FaLinkedin' },
+  { value: 'instagram', label: 'Instagram', icon: 'FaInstagram' },
+  { value: 'twitter', label: 'Twitter/X', icon: 'FaTwitter' },
+  { value: 'leetcode', label: 'LeetCode', icon: 'FaCode' },
+  { value: 'other', label: 'Other', icon: 'FaLink' },
 ];
 
 export default function SocialLinksPage() {
@@ -64,13 +64,32 @@ export default function SocialLinksPage() {
       const response = await fetch('/api/admin/social-links');
       if (response.ok) {
         const data = await response.json();
-        setSocialLinks(data);
+        // Convert old icon format to new format if needed
+        const convertedData = data.map((link: SocialLink) => ({
+          ...link,
+          icon: convertIconName(link.icon)
+        }));
+        setSocialLinks(convertedData);
       }
       setLoading(false);
     } catch (error) {
       console.error('Error fetching social links:', error);
       setLoading(false);
     }
+  };
+
+  // Helper function to convert old icon format to new format
+  const convertIconName = (iconName: string) => {
+    const iconMap: { [key: string]: string } = {
+      'fab fa-github': 'FaGithub',
+      'fab fa-linkedin-in': 'FaLinkedin',
+      'fab fa-instagram': 'FaInstagram',
+      'fab fa-twitter': 'FaTwitter',
+      'fas fa-code': 'FaCode',
+      'fas fa-link': 'FaLink',
+      'fas fa-envelope': 'FaLink'
+    };
+    return iconMap[iconName] || 'FaLink';
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -81,7 +100,7 @@ export default function SocialLinksPage() {
         return {
           ...prev,
           [name]: value,
-          icon: selectedPlatform ? selectedPlatform.icon.name : 'FaLink'
+          icon: selectedPlatform ? selectedPlatform.icon : 'FaLink'
         };
       }
       return {
@@ -167,7 +186,7 @@ export default function SocialLinksPage() {
       const newLink: SocialLink = {
         platform: importPlatform,
         url: importData.url,
-        icon: platformInfo ? platformInfo.icon.name : 'FaLink'
+        icon: platformInfo ? platformInfo.icon : 'FaLink'
       };
       
       // Add the new link to the list
