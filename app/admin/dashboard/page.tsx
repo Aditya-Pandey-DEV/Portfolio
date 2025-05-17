@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/app/components/ui/button';
 import Link from 'next/link';
-import { FaUser, FaBriefcase, FaGraduationCap, FaLaptopCode, FaCertificate, FaTools, FaLink, FaImage, FaSearch, FaLock, FaPalette, FaCog } from 'react-icons/fa';
+import { FaUser, FaBriefcase, FaGraduationCap, FaLaptopCode, FaCertificate, FaTools, FaLink, FaImage, FaSearch, FaLock, FaPalette, FaCog, FaExclamationTriangle } from 'react-icons/fa';
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/app/components/ui/alert";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -14,15 +15,31 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [showDefaultCredentials, setShowDefaultCredentials] = useState(false);
   const [defaultCredentials, setDefaultCredentials] = useState<{ email: string; password: string } | null>(null);
+  const [envCheck, setEnvCheck] = useState<{
+    isConfigured: boolean;
+    missingVars: string[];
+  }>({ isConfigured: true, missingVars: [] });
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/admin/login');
     } else if (status === 'authenticated') {
       checkDefaultCredentials();
+      checkEnvironmentVariables();
       setLoading(false);
     }
   }, [status, router]);
+
+  const checkEnvironmentVariables = async () => {
+    try {
+      const response = await fetch('/api/admin/env-check');
+      const data = await response.json();
+      setEnvCheck(data);
+    } catch (error) {
+      console.error('Error checking environment variables:', error);
+      setEnvCheck({ isConfigured: false, missingVars: ['Error checking environment variables'] });
+    }
+  };
 
   const checkDefaultCredentials = async () => {
     try {
@@ -52,76 +69,110 @@ export default function AdminDashboard() {
 
   const menuItems = [
     {
+      title: 'System Setup',
+      description: 'Configure environment variables and system settings',
+      icon: <FaCog className="h-6 w-6 text-red-600 dark:text-red-400" />,
+      href: '/setup',
+      priority: 1
+    },
+    {
       title: 'Admin Credentials',
       description: 'Update your admin login email and password',
       icon: <FaLock className="h-6 w-6 text-red-600 dark:text-red-400" />,
       href: '/admin/dashboard/credentials',
+      priority: 2
     },
     {
       title: 'Profile Image',
       description: 'Update your profile picture displayed in the hero section',
       icon: <FaImage className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
       href: '/admin/dashboard/profile-image',
+      priority: 3
     },
     {
       title: 'Personal Information',
       description: 'Update your name, title, contact details, and about section',
       icon: <FaUser className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
       href: '/admin/dashboard/personal',
+      priority: 3
     },
     {
       title: 'Social Links',
       description: 'Manage your social media and external profile links',
       icon: <FaLink className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
       href: '/admin/dashboard/social-links',
+      priority: 3
     },
     {
       title: 'Experience',
       description: 'Manage your work experience and job history',
       icon: <FaBriefcase className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
       href: '/admin/dashboard/experience',
+      priority: 3
     },
     {
       title: 'Education',
       description: 'Update your academic qualifications and achievements',
       icon: <FaGraduationCap className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
       href: '/admin/dashboard/education',
+      priority: 3
     },
     {
       title: 'Projects',
       description: 'Showcase your projects, work samples, and portfolio items',
       icon: <FaLaptopCode className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
       href: '/admin/dashboard/projects',
+      priority: 3
     },
     {
       title: 'Certifications',
       description: 'Add professional certifications and achievements',
       icon: <FaCertificate className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
       href: '/admin/dashboard/certifications',
+      priority: 3
     },
     {
       title: 'Skills',
       description: 'Update your technical and professional skills',
       icon: <FaTools className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
       href: '/admin/dashboard/skills',
+      priority: 3
     },
     {
       title: 'SEO Settings',
       description: 'Optimize your site for search engines and social media sharing',
       icon: <FaSearch className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
       href: '/admin/dashboard/seo',
+      priority: 3
     },
     {
       title: 'Theme',
       description: 'Customize your portfolio\'s look and feel',
       icon: <FaPalette className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
       href: '/admin/dashboard/theme',
+      priority: 3
     },
-  ];
+  ].sort((a, b) => a.priority - b.priority);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="container mx-auto px-4 md:px-6">
+        {!envCheck.isConfigured && (
+          <Alert variant="destructive" className="mb-6">
+            <FaExclamationTriangle className="h-4 w-4" />
+            <AlertTitle>Environment Variables Not Configured</AlertTitle>
+            <AlertDescription>
+              <p className="mb-2">The following environment variables are missing:</p>
+              <ul className="list-disc list-inside mb-2">
+                {envCheck.missingVars.map((varName) => (
+                  <li key={varName}>{varName}</li>
+                ))}
+              </ul>
+              <p>Please configure these variables in the System Setup page to ensure proper functionality.</p>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {showDefaultCredentials && defaultCredentials && (
           <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
             <h2 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
@@ -193,24 +244,6 @@ export default function AdminDashboard() {
               </div>
             </Link>
           ))}
-        </div>
-
-        <div className="mt-8">
-          <Link href="/setup">
-            <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FaCog className="h-5 w-5" />
-                  System Setup
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Initialize and configure your portfolio system
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
         </div>
       </div>
     </div>
