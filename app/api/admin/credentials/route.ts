@@ -16,8 +16,11 @@ export async function GET() {
     // If coming from /god path, return credentials without session check
     if (isFromGod) {
       const user = await prisma.user.findFirst();
+      const isDefault = !user || user.email === 'admin@example.com';
       return NextResponse.json({
-        email: user?.email || 'admin@example.com'
+        email: user?.email || 'admin@example.com',
+        isDefault,
+        password: isDefault ? 'Admin@123' : undefined
       });
     }
 
@@ -31,8 +34,11 @@ export async function GET() {
     }
 
     const user = await prisma.user.findFirst();
+    const isDefault = !user || user.email === 'admin@example.com';
     return NextResponse.json({
-      email: user?.email || 'admin@example.com'
+      email: user?.email || 'admin@example.com',
+      isDefault,
+      password: isDefault ? 'Admin@123' : undefined
     });
 
   } catch (error) {

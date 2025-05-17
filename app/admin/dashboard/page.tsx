@@ -12,14 +12,35 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [loading, setLoading] = useState(true);
+  const [showDefaultCredentials, setShowDefaultCredentials] = useState(false);
+  const [defaultCredentials, setDefaultCredentials] = useState<{ email: string; password: string } | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/admin/login');
     } else if (status === 'authenticated') {
+      checkDefaultCredentials();
       setLoading(false);
     }
   }, [status, router]);
+
+  const checkDefaultCredentials = async () => {
+    try {
+      const response = await fetch('/api/admin/credentials');
+      const data = await response.json();
+      
+      // Check if credentials are still default
+      if (data.isDefault) {
+        setDefaultCredentials({
+          email: 'admin@example.com',
+          password: 'Admin@123'
+        });
+        setShowDefaultCredentials(true);
+      }
+    } catch (error) {
+      console.error('Error checking credentials:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -101,6 +122,30 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="container mx-auto px-4 md:px-6">
+        {showDefaultCredentials && defaultCredentials && (
+          <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
+            <h2 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+              First Time Login
+            </h2>
+            <p className="text-yellow-700 dark:text-yellow-300 mb-2">
+              Please change your default credentials for security:
+            </p>
+            <div className="space-y-2">
+              <p className="text-sm">
+                <span className="font-medium">Email:</span> {defaultCredentials.email}
+              </p>
+              <p className="text-sm">
+                <span className="font-medium">Password:</span> {defaultCredentials.password}
+              </p>
+            </div>
+            <Link href="/admin/dashboard/credentials">
+              <Button variant="outline" size="sm" className="mt-3">
+                Change Credentials
+              </Button>
+            </Link>
+          </div>
+        )}
+        
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
