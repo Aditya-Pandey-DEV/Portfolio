@@ -29,7 +29,8 @@ function LoginForm() {
     // Check for error in URL
     const errorParam = searchParams.get('error');
     if (errorParam === 'Configuration') {
-      setError('Please configure your environment variables first. Check the setup page for details.');
+      router.push('/setup');
+      return;
     }
 
     // Check if user is coming from /god path
@@ -48,11 +49,13 @@ function LoginForm() {
         }
       } catch (error) {
         console.error('Error fetching credentials:', error);
+        // If credentials API fails, redirect to setup
+        router.push('/setup');
       }
     };
 
     fetchCredentials();
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   const copyToClipboard = async (text: string, type: string) => {
     try {
