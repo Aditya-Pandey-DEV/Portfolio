@@ -1,29 +1,65 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 
-export const dynamic = 'force-static';
+export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
 
 export async function GET() {
   try {
-    // Get the manifest file from the public directory
-    const manifestPath = path.join(process.cwd(), 'public', 'manifest.json');
-    const manifestContent = fs.readFileSync(manifestPath, 'utf8');
-    const manifestJson = JSON.parse(manifestContent);
-    
-    // Return the manifest with proper headers
-    return NextResponse.json(manifestJson, {
+    const manifest = {
+      name: "Aditya Pandey's Portfolio",
+      short_name: "Aditya's Portfolio",
+      description: "Full Stack Developer Portfolio",
+      start_url: "/",
+      display: "standalone",
+      background_color: "#ffffff",
+      theme_color: "#000000",
+      icons: [
+        {
+          src: "/icons/icon-192x192.png",
+          sizes: "192x192",
+          type: "image/png",
+          purpose: "any maskable"
+        },
+        {
+          src: "/icons/icon-512x512.png",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "any maskable"
+        }
+      ]
+    };
+
+    return new NextResponse(JSON.stringify(manifest), {
+      status: 200,
       headers: {
-        'Content-Type': 'application/manifest+json',
+        'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=86400'
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Cache-Control': 'public, max-age=3600'
       }
     });
   } catch (error) {
-    console.error('Error serving manifest:', error);
-    return NextResponse.json(
-      { error: 'Failed to load manifest' },
-      { status: 500 }
-    );
+    console.error('Manifest API error:', error);
+    return new NextResponse(JSON.stringify({ error: 'Failed to generate manifest' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      }
+    });
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    }
+  });
 } 

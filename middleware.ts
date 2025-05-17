@@ -5,18 +5,22 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   console.log(`Middleware processing path: ${path}`);
 
-  // Skip processing for static files
-  if (path.includes('manifest.json') || 
-      path.includes('api/manifest') ||
-      path.endsWith('.ico') || 
-      path.endsWith('.png') || 
-      path.endsWith('.jpg') || 
-      path.endsWith('.svg') || 
-      path.endsWith('.css') || 
-      path.endsWith('.js') || 
-      path.includes('_next/static') ||
-      path.includes('api/resume') || // Skip auth check for resume API
-      path.includes('api/theme')) { // Skip auth check for theme API
+  // Skip processing for static files and public APIs
+  if (
+    path.includes('manifest') || 
+    path.includes('api/manifest') ||
+    path.endsWith('.ico') || 
+    path.endsWith('.png') || 
+    path.endsWith('.jpg') || 
+    path.endsWith('.svg') || 
+    path.endsWith('.css') || 
+    path.endsWith('.js') || 
+    path.includes('_next/static') ||
+    path.includes('_next/data') ||
+    path.includes('api/resume') || 
+    path.includes('api/theme') ||
+    path.includes('api/auth')
+  ) {
     console.log('Skipping middleware for static file or public API:', path);
     return NextResponse.next();
   }
@@ -44,9 +48,7 @@ export async function middleware(request: NextRequest) {
   // Skip auth check for non-admin paths and already authenticated admin login
   if (!path.startsWith('/admin') || 
       path.startsWith('/admin/login') || 
-      path === '/admin-direct' || 
-      path.startsWith('/api/auth/') ||
-      path.startsWith('/api/admin-access')) {
+      path === '/admin-direct') {
     console.log('Skipping auth check for non-protected path:', path);
     const response = NextResponse.next();
     addCorsHeaders(response);

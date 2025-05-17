@@ -80,10 +80,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="manifest" href="/api/manifest" type="application/manifest+json" />
-        <meta name="theme-color" content="#1e40af" />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <link rel="manifest" href="/api/manifest" />
+        <meta name="theme-color" content="#000000" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="Aditya Pandey's Portfolio - Full Stack Developer" />
       </head>
       <body className={`${inter.className} antialiased`}>
         <NextAuthProvider>
