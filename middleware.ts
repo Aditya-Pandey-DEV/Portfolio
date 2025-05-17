@@ -28,9 +28,18 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   console.log(`Middleware processing path: ${path}`);
 
-  // Skip processing for manifest and other static files
-  if (path.includes('manifest.json') || path.endsWith('.ico') || path.endsWith('.png') || path.endsWith('.jpg')) {
-    console.log('Skipping middleware for static file:', path);
+  // Skip processing for static files
+  if (path.includes('manifest.json') || 
+      path.endsWith('.ico') || 
+      path.endsWith('.png') || 
+      path.endsWith('.jpg') || 
+      path.endsWith('.svg') || 
+      path.endsWith('.css') || 
+      path.endsWith('.js') || 
+      path.includes('_next/static') ||
+      path.includes('api/resume') || // Skip auth check for resume API
+      path.includes('api/theme')) { // Skip auth check for theme API
+    console.log('Skipping middleware for static file or public API:', path);
     return NextResponse.next();
   }
 

@@ -40,8 +40,16 @@ export async function fetchWithCache<T>(
   }
 
   try {
-    // Actual fetch operation
-    const response = await fetch(url, fetchOptions);
+    // Actual fetch operation with better Safari compatibility
+    const response = await fetch(url, {
+      credentials: 'same-origin', // Include credentials for same-origin requests
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...fetchOptions.headers,
+      },
+      ...fetchOptions
+    });
     
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
@@ -61,6 +69,7 @@ export async function fetchWithCache<T>(
     
     // Return stale data if available rather than failing
     if (cached) {
+      console.log(`Using cached data for ${url} due to fetch error`);
       return cached.data;
     }
     

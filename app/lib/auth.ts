@@ -2,21 +2,32 @@ import { PrismaAdapter } from '@auth/prisma-adapter';
 import { NextAuthOptions, getServerSession } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcrypt';
-import { PrismaClient } from '@/app/generated/prisma';
+import prisma from '@/app/lib/prisma-wrapper';
+import { headers } from 'next/headers';
 
-const prisma = new PrismaClient();
-
-// Determine the base URL dynamically based on environment variables
+// Determine the base URL dynamically based on environment variables and request
 const getBaseUrl = () => {
   // For Vercel deployments, use VERCEL_URL
   if (process.env.VERCEL_URL) {
-    console.log(`Using VERCEL_URL: ${process.env.VERCEL_URL}`);
+    // Make sure to use https for Vercel URLs
     return `https://${process.env.VERCEL_URL}`;
+  }
+  
+  // Try to extract host from headers in a server context
+  try {
+    const headersList = headers();
+    const host = headersList.get('host');
+    if (host) {
+      const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
+      return `${protocol}://${host}`;
+    }
+  } catch (e) {
+    // Headers might not be available in all contexts
+    console.log('Could not access request headers');
   }
   
   // Fallback to NEXTAUTH_URL if set
   if (process.env.NEXTAUTH_URL) {
-    console.log(`Using NEXTAUTH_URL: ${process.env.NEXTAUTH_URL}`);
     return process.env.NEXTAUTH_URL;
   }
   
@@ -25,8 +36,8 @@ const getBaseUrl = () => {
     return 'http://localhost:3000';
   }
   
-  console.log('No URL environment variables found, using fallback');
-  return 'https://aditya-ten-inky.vercel.app';
+  // Ultimate fallback - likely a Vercel deployment
+  return 'https://your-portfolio-url.vercel.app';
 };
 
 // Set NEXTAUTH_URL dynamically if it's not already set
@@ -38,9 +49,8 @@ if (!process.env.NEXTAUTH_URL) {
 // Log important configuration info
 console.log('NextAuth initialization');
 console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('VERCEL_URL:', process.env.VERCEL_URL || 'Not set');
 console.log('NEXTAUTH_URL:', process.env.NEXTAUTH_URL ? '(Set)' : '(Not set)');
-console.log('Effective base URL:', getBaseUrl());
+console.log('VERCEL_URL:', process.env.VERCEL_URL ? process.env.VERCEL_URL : '(Not set)');
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -117,7 +127,7 @@ export const authOptions: NextAuthOptions = {
           console.error('Error comparing passwords:', error);
           return null;
         }
-      },
+      }
     }),
   ],
   pages: {

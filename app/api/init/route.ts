@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/app/generated/prisma";
 import { MongoClient } from "mongodb";
-
-const prisma = new PrismaClient();
+import { hash } from "bcrypt";
+import prisma from "@/app/lib/prisma-wrapper";
 
 export async function GET(request: NextRequest) {
   console.log("Initializing database...");
@@ -61,145 +60,141 @@ export async function GET(request: NextRequest) {
           };
         }
       } else {
-        // Create default theme with proper timestamps
+        // Create default theme if none exists
         console.log("No theme found, creating default theme...");
-        results.steps.push({ action: "create_default_theme", status: "started" });
+        results.steps.push({ action: "create_theme", status: "started" });
         
-        const now = new Date();
-        const defaultTheme = await prisma.theme.create({
-          data: {
-            name: "Default Theme",
-            isDefault: true,
-            primaryColor: '#3b82f6',
-            secondaryColor: '#1e40af',
-            accentColor: '#f59e0b',
-            backgroundColor: '#ffffff',
-            textColor: '#171717',
-            headingColor: '#111827',
-            linkColor: '#3b82f6',
-            buttonColor: '#3b82f6',
-            buttonTextColor: '#ffffff',
-            cardColor: '#f9fafb',
-            borderColor: '#e5e7eb',
-            
-            darkPrimaryColor: '#3b82f6',
-            darkSecondaryColor: '#60a5fa',
-            darkAccentColor: '#f59e0b',
-            darkBackgroundColor: '#0a0a0a',
-            darkTextColor: '#f3f4f6',
-            darkHeadingColor: '#f9fafb',
-            darkLinkColor: '#60a5fa',
-            darkButtonColor: '#3b82f6',
-            darkButtonTextColor: '#ffffff',
-            darkCardColor: '#1f2937',
-            darkBorderColor: '#374151',
-            
-            headingFont: 'Inter',
-            bodyFont: 'Inter',
-            
-            borderRadius: 8,
-            buttonRadius: 8,
-            cardRadius: 12,
-            
-            // Explicitly set timestamps
-            createdAt: now,
-            updatedAt: now
-          }
-        });
-        
-        results.steps.push({ 
-          action: "create_default_theme", 
-          status: "completed",
-          theme_id: defaultTheme.id
-        });
-        
-        results.theme = {
-          id: defaultTheme.id,
-          name: defaultTheme.name,
-          createdAt: defaultTheme.createdAt,
-        };
+        try {
+          const now = new Date();
+          const defaultTheme = await prisma.theme.create({
+            data: {
+              name: "Default Theme",
+              primaryColor: "#1e40af",
+              secondaryColor: "#3b82f6",
+              accentColor: "#60a5fa",
+              fontPrimary: "Inter, sans-serif",
+              fontSecondary: "Roboto, sans-serif",
+              darkMode: true,
+              createdAt: now,
+              updatedAt: now
+            }
+          });
+          
+          results.steps.push({ 
+            action: "create_theme", 
+            status: "completed", 
+            theme: defaultTheme.name 
+          });
+          
+          results.theme = {
+            id: defaultTheme.id,
+            name: defaultTheme.name,
+            createdAt: defaultTheme.createdAt,
+          };
+        } catch (themeError) {
+          console.error("Error creating theme:", themeError);
+          results.steps.push({ 
+            action: "create_theme", 
+            status: "failed", 
+            error: themeError instanceof Error ? themeError.message : String(themeError)
+          });
+        }
       }
     } catch (themeError) {
-      console.error("Error fixing theme:", themeError);
+      console.error("Error checking theme:", themeError);
       results.steps.push({ 
-        action: "theme_operation", 
+        action: "check_theme", 
         status: "failed", 
         error: themeError instanceof Error ? themeError.message : String(themeError)
       });
       
-      // Try direct MongoDB approach if Prisma fails
-      if (process.env.DATABASE_URL) {
+      // Try using direct MongoDB connection as fallback
+      const dbUrl = process.env.DATABASE_URL;
+      
+      if (dbUrl) {
+        console.log("Trying direct MongoDB connection as fallback...");
         results.steps.push({ action: "mongodb_fallback", status: "started" });
         
-        const client = new MongoClient(process.env.DATABASE_URL);
+        const client = new MongoClient(dbUrl, {
+          connectTimeoutMS: 10000,
+          socketTimeoutMS: 10000
+        });
+        
         try {
           await client.connect();
-          const db = client.db();
-          const themesCollection = db.collection('Theme');
           
-          // Check for existing themes
-          const existingTheme = await themesCollection.findOne({});
+          // Get database name from connection string
+          const dbName = new URL(dbUrl.replace('mongodb+srv://', 'http://')).pathname.substring(1) || 'portfolio';
+          const db = client.db(dbName);
+          
+          // Check for and fix themes
+          const themesCollection = db.collection('Theme');
+          const existingTheme = await themesCollection.findOne({ name: 'Default Theme' });
           
           if (existingTheme) {
-            // Update the theme with proper timestamps
-            const now = new Date();
-            await themesCollection.updateOne(
-              { _id: existingTheme._id },
-              { $set: { createdAt: now, updatedAt: now } }
-            );
+            console.log("Found theme in MongoDB, fixing timestamps...");
             
-            results.steps.push({ 
-              action: "mongodb_theme_update", 
-              status: "completed",
-              theme_id: existingTheme._id.toString()
-            });
+            // Fix dates if needed
+            if (!existingTheme.createdAt) {
+              const now = new Date();
+              await themesCollection.updateOne(
+                { _id: existingTheme._id },
+                { $set: { createdAt: now, updatedAt: now } }
+              );
+              
+              results.steps.push({ 
+                action: "fix_mongodb_theme_dates", 
+                status: "completed" 
+              });
+            }
           } else {
-            // Create a new theme with timestamps
+            console.log("Creating theme with MongoDB...");
             const now = new Date();
-            const defaultTheme = {
+            await themesCollection.insertOne({
               name: "Default Theme",
-              isDefault: true,
-              primaryColor: '#3b82f6',
-              secondaryColor: '#1e40af',
-              accentColor: '#f59e0b',
-              backgroundColor: '#ffffff',
-              textColor: '#171717',
-              headingColor: '#111827',
-              linkColor: '#3b82f6',
-              buttonColor: '#3b82f6',
-              buttonTextColor: '#ffffff',
-              cardColor: '#f9fafb',
-              borderColor: '#e5e7eb',
-              darkPrimaryColor: '#3b82f6',
-              darkSecondaryColor: '#60a5fa',
-              darkAccentColor: '#f59e0b',
-              darkBackgroundColor: '#0a0a0a',
-              darkTextColor: '#f3f4f6',
-              darkHeadingColor: '#f9fafb',
-              darkLinkColor: '#60a5fa',
-              darkButtonColor: '#3b82f6',
-              darkButtonTextColor: '#ffffff',
-              darkCardColor: '#1f2937',
-              darkBorderColor: '#374151',
-              headingFont: 'Inter',
-              bodyFont: 'Inter',
-              borderRadius: 8,
-              buttonRadius: 8,
-              cardRadius: 12,
+              primaryColor: "#1e40af",
+              secondaryColor: "#3b82f6",
+              accentColor: "#60a5fa",
+              fontPrimary: "Inter, sans-serif",
+              fontSecondary: "Roboto, sans-serif",
+              darkMode: true,
               createdAt: now,
               updatedAt: now
-            };
-            
-            const result = await themesCollection.insertOne(defaultTheme);
+            });
             
             results.steps.push({ 
-              action: "mongodb_theme_create", 
-              status: "completed",
-              theme_id: result.insertedId.toString()
+              action: "create_mongodb_theme", 
+              status: "completed" 
             });
           }
           
-          results.steps.push({ action: "mongodb_fallback", status: "completed" });
+          // Check for admin user
+          const usersCollection = db.collection('User');
+          const adminUser = await usersCollection.findOne({ email: 'admin@example.com' });
+          
+          if (!adminUser) {
+            console.log("Creating admin user with MongoDB...");
+            const hashedPassword = await hash('Admin@123', 10);
+            const now = new Date();
+            
+            await usersCollection.insertOne({
+              name: "Admin User",
+              email: "admin@example.com",
+              password: hashedPassword,
+              createdAt: now,
+              updatedAt: now
+            });
+            
+            results.steps.push({ 
+              action: "create_mongodb_admin", 
+              status: "completed" 
+            });
+          }
+          
+          results.steps.push({ 
+            action: "mongodb_fallback", 
+            status: "completed" 
+          });
         } catch (mongoError) {
           console.error("MongoDB fallback error:", mongoError);
           results.steps.push({ 
