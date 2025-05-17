@@ -36,6 +36,19 @@ export async function middleware(request: NextRequest) {
       },
     });
   }
+
+  // Check for any form of authentication first
+  const hasAnyAuth = request.cookies.has('next-auth.session-token') || 
+                    request.cookies.has('god_access') || 
+                    request.cookies.has('admin_token');
+
+  // If user has any form of authentication, allow access to all paths
+  if (hasAnyAuth) {
+    console.log('User has existing auth, allowing access to:', path);
+    const response = NextResponse.next();
+    addCorsHeaders(response);
+    return response;
+  }
   
   // Force exclude god path from auth checks completely
   if (path === '/god') {
@@ -101,11 +114,7 @@ export async function middleware(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('Auth middleware error:', error);
-    // On error, allow access if we have any form of authentication
-    const hasAnyAuth = request.cookies.has('next-auth.session-token') || 
-                      request.cookies.has('god_access') || 
-                      request.cookies.has('admin_token');
-    
+    // If we have any form of authentication, allow access
     if (hasAnyAuth) {
       console.log('Auth error but has existing auth, allowing access');
       const response = NextResponse.next();
